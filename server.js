@@ -1,9 +1,13 @@
 const express = require("express");
 const multer = require("multer");
 const { spawn } = require("child_process");
+const cors = require("cors");
 
 const app = express();
 const upload = multer({ dest: "uploads/" });
+
+// Enable CORS for all routes
+app.use(cors());
 
 // Route to handle image upload and prediction
 app.post("/predict", upload.single("image"), (req, res) => {
@@ -22,7 +26,9 @@ app.post("/predict", upload.single("image"), (req, res) => {
   // Capture errors from Python's stderr
   python.stderr.on("data", (data) => {
     console.error(`stderr: ${data}`);
-    res.status(500).send("Error during prediction"); // Send error response
+    if (!res.headersSent) {
+      res.status(500).send("Error during prediction");
+    }
   });
 
   // When Python script finishes execution
