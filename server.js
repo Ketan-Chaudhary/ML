@@ -1,7 +1,6 @@
 const express = require("express");
 const multer = require("multer");
 const { spawn } = require("child_process");
-const path = require("path");
 
 const app = express();
 const upload = multer({ dest: "uploads/" });
@@ -13,17 +12,25 @@ app.post("/predict", upload.single("image"), (req, res) => {
   // Call Python script for prediction
   const python = spawn("python", ["predict.py", imgPath]);
 
+  let predictionResult = "";
+
+  // Capture data from Python's stdout
   python.stdout.on("data", (data) => {
-    res.send(`Predicted digit: ${data}`);
+    predictionResult += data.toString(); // Accumulate the result
   });
 
+  // Capture errors from Python's stderr
   python.stderr.on("data", (data) => {
     console.error(`stderr: ${data}`);
-    res.status(500).send("Error during prediction");
+    res.status(500).send("Error during prediction"); // Send error response
   });
 
+  // When Python script finishes execution
   python.on("close", (code) => {
     console.log(`Python process exited with code ${code}`);
+    if (!res.headersSent) {
+      res.send(`Predicted digit: ${predictionResult}`);
+    }
   });
 });
 
